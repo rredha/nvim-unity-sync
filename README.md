@@ -170,10 +170,19 @@ Once installed, use `<Tab>` or your LuaSnip trigger keys to expand snippets insi
 
 ---
 
-## 📦 Future Ideas
-- Scene explorer or interaction
-- Unity-specific commands
-- UI for adding Unity packages
+## 🧩 Unity Editor Integration
+
+To make the integration even smoother, you can install the Unity-side package:
+
+📦 [`nvim-unity-editor`](https://github.com/apyra/nvim-unity-editor)
+
+This Unity package:
+
+- Adds a "Regenerate Project Files" button inside the Unity editor
+- Lets you set Neovim as the external script editor (via a launcher script)
+- Generates `.csproj`, `.sln`, and `.vscode/` on demand
+
+Install it via Git or manually inside Unity's `Packages/` folder. Check its README for full instructions.
 
 ---
 
@@ -184,6 +193,7 @@ PRs and suggestions welcome! This plugin is still under early development.
 
 ## 📜 License
 MIT
+
 
 
 
