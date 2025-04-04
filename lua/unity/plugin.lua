@@ -23,6 +23,7 @@ api.events.subscribe(Event.FileCreated, function(data)
 
 	local folderName = utils.cutPath(utils.uriToPath(data.fname), "Assets")
 	if unityProject:addCompileTag(folderName) then
+		utils.insertCSTemplate(data.fname)
 		trySaveProject()
 	end
 end)
@@ -106,6 +107,7 @@ vim.api.nvim_create_autocmd("LspNotify", {
 
 			local fileName = utils.cutPath(utils.uriToPath(changes[1].uri), "Assets")
 			if changes[1].type == 1 then
+        utils.insertCSTemplate(utils.uriToPath(changes[1].uri))
 				if unityProject:addCompileTag(fileName) then
 					needSave = true
 				end
@@ -185,7 +187,9 @@ vim.api.nvim_create_user_command("Uadd", function()
 	local bufname = vim.api.nvim_buf_get_name(0)
 
 	if not unityProject:validateProject() then
-		vim.api.nvim_err_writeln("[NvimUnity] This is not an Unity project, try to regenerate the csproj files in Unity")
+		vim.api.nvim_err_writeln(
+			"[NvimUnity] This is not an Unity project, try to regenerate the csproj files in Unity"
+		)
 		return
 	end
 
@@ -208,7 +212,9 @@ end, { nargs = 0 })
 
 vim.api.nvim_create_user_command("Uaddall", function()
 	if not unityProject:validateProject() then
-		vim.api.nvim_err_writeln("[NvimUnity] This is not an Unity project, try to regenerate the csproj files in Unity")
+		vim.api.nvim_err_writeln(
+			"[NvimUnity] This is not an Unity project, try to regenerate the csproj files in Unity"
+		)
 		return
 	end
 

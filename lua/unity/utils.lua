@@ -126,4 +126,33 @@ function utils.cutPath(path, folder)
   end
 end
 
+function utils.insertCSTemplate(filepath)
+  vim.defer_fn(function()
+    local bufnr = vim.fn.bufnr(filepath)
+    if not vim.api.nvim_buf_is_loaded(bufnr) then
+      vim.fn.bufload(bufnr)
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local is_empty = #lines == 1 and lines[1] == ""
+
+    if not is_empty then
+      -- Não inserir se já tiver conteúdo (ex: gerado por LSP)
+      return
+    end
+
+    local filename = vim.fn.fnamemodify(filepath, ":t:r")
+    local classTemplate = string.format([[
+using UnityEngine;
+
+public class %s : MonoBehaviour
+{
+
+}
+]], filename)
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(classTemplate, "\n"))
+  end, 200) -- espera 200ms, tempo suficiente pro LSP entrar
+end
+
 return utils

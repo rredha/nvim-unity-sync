@@ -1,78 +1,49 @@
 
 # nvim-unity
 
-A Neovim plugin to automatically keep your `.csproj` files updated when working on Unity projects.  
-It detects file creations, deletions, renames, and updates `<Compile Include="..."/>` tags accordingly.
+Neovim integration for Unity C# development.
 
----
+## 🔧 Plugin Commands (`nvim-unity`)
 
-## 📦 Installation (with Lazy.nvim)
-
-Add this plugin in your `lazy.nvim` configuration:
-
-```lua
-{
-  "apyra/nvim-unity",
-  lazy = false,
-  config = function()
-    require("nvim-unity.plugin")
-  end,
-}
-```
-
-> Note: This plugin is designed to be placed in `lua/nvim-unity/`
-
----
-
-## 🛠️ Commands
-
-| Command     | Description                                                              |
-|-------------|--------------------------------------------------------------------------|
-| `:Uadd`     | Manually add the current `.cs` file to the corresponding `.csproj`       |
-| `:Uaddall`  | Reset and re-add all `.cs` files from `Assets/` folder                   |
-| `:Ustatus`  | Show status of the current project, LSP status, and Unity project root   |
-
----
-
-## 🚀 Features
-
-- Automatically adds or removes `<Compile Include="..."/>` tags when `.cs` files are created or deleted
-- Detects folder renames and file renames
-- Handles file changes by both `nvim-tree` and LSP (`Omnisharp`)
-- Notifies when the LSP is attached to the project
-
----
+| Command     | Description                                      |
+|-------------|--------------------------------------------------|
+| `:Uadd`     | Force add the current `.cs` file to the project. |
+| `:Uaddall`  | Re-add all `.cs` files from `Assets/` to the `.csproj`. |
+| `:Ustatus`  | Print diagnostics and the current Unity project root. |
 
 ## 🔧 Recommended Configuration
 
-### 🧠 Use NvChad
+We suggest using the following tools and configuration with `nvim-unity`:
 
-We recommend using **NvChad**, which comes bundled with:
-- **Lazy.nvim**
-- **Mason.nvim**
-- **Telescope**
-- Beautiful UI and modular configuration
+### 🧪 Use NvChad
 
-### 🧩 LSP Setup (Omnisharp via Mason)
+NvChad is a feature-rich Neovim configuration that already comes with:
 
-Install Omnisharp using Mason:
+- [Lazy.nvim](https://github.com/folke/lazy.nvim)
+- [Mason.nvim](https://github.com/williamboman/mason.nvim)
+- [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
 
+### ⚙️ OmniSharp via Mason
+
+Install OmniSharp with Mason:
+
+```bash
+:Mason
+# Then install "omnisharp"
 ```
-:MasonInstall omnisharp
-```
 
-LSP Configuration (example for `lspconfig.lua`):
+Configure `lspconfig` for C# with:
 
 ```lua
 local lspconfig = require("lspconfig")
-local nvlsp = require("nvchad.configs.lspconfig") -- or your own on_attach/capabilities
+local nvlsp = require("plugins.configs.lspconfig")
 
 lspconfig.omnisharp.setup {
   on_attach = nvlsp.on_attach,
   capabilities = nvlsp.capabilities,
   cmd = {
     "dotnet",
-    vim.fn.stdpath("data") .. "\mason\packages\omnisharp\libexec\OmniSharp.dll",
+    vim.fn.stdpath "data" .. "\\mason\\packages\\omnisharp\\libexec\\OmniSharp.dll",
   },
   settings = {
     FormattingOptions = {
@@ -137,19 +108,23 @@ lspconfig.omnisharp.setup {
 }
 ```
 
-### 🌳 Treesitter
+### 🧩 Treesitter
 
-Ensure the following parser is installed in `nvim-treesitter`:
+Ensure `c_sharp` is added in your `treesitter` config:
 
 ```lua
-ensure_installed = {
-  "c_sharp",
+require("nvim-treesitter.configs").setup {
+  ensure_installed = {
+    "lua",
+    "c_sharp", -- Required for C# syntax highlighting and folding
+  },
+  highlight = { enable = true },
 }
 ```
 
-### 🪄 Folding (with `nvim-ufo`)
+### 📦 Folding with `nvim-ufo`
 
-Recommended plugin for code folding:
+Install and configure `nvim-ufo` and `statuscol`:
 
 ```lua
 {
@@ -168,7 +143,7 @@ Recommended plugin for code folding:
             { text = { "%s" }, click = "v:lua.ScSa" },
             { text = { builtin.lnumfunc, " " }, click = "v:lua.ScLa" },
           },
-          provider_selector = function(_, _, _)
+          provider_selector = function(bufnr, filetype, buftype)
             return { "lsp", "indent" }
           end,
         }
@@ -187,22 +162,19 @@ Recommended plugin for code folding:
 }
 ```
 
----
+## 🪄 Nice Tips
 
-## 💡 Nice Tips
+| Feature / Shortcut           | Description                                            |
+|------------------------------|--------------------------------------------------------|
+| `<leader>ch`                 | Toggle **NvCheatsheet** with all keymaps.             |
+| `<leader>ff`, `fb`, etc      | **Telescope** for files, buffers, etc.                |
+| `gd`, `gD`, `<C-LeftClick>`  | Go to definition/declaration.                         |
+| `K`                          | Show signature help.                                  |
+| `<leader>ca`                 | Show code actions.                                    |
+| `:Mason`                     | Open Mason UI.                                        |
+| `:Lazy`                      | Manage plugins with Lazy.                             |
+| `:Uadd`, `:Uaddall`, `:Ustatus` | Use `nvim-unity` plugin commands.                  |
 
-- `NvCheatsheet` (toggle keybindings menu): `<leader>ch`
-- LSP:
-  - Signature help: `K`
-  - Code actions: `<leader>ca`
-  - Go to definition: `<C-LeftMouse>` or `gd`
-- Open project in Unity with `:!start Unity` or similar shell commands
+## ⚠️ Important Note
 
----
-
-### ⚠️ Important Note
-
-**Do not install an external formatter (like `conform.nvim`)** for C# files.  
-Omnisharp **already includes its own formatter**, and installing a separate one may break LSP formatting and cause unexpected behavior.
-
----
+**Do not** configure a formatter (e.g. `conform.nvim`) for `.cs` files — OmniSharp already provides formatting. Adding another formatter may break LSP functionality.
