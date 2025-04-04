@@ -1,180 +1,186 @@
+# NvimUnity
 
-# nvim-unity
+**NvimUnity** is a lightweight Neovim plugin designed to enhance Unity development inside Neovim. It automatically manages `.csproj` files based on file events, helping you avoid the need to manually regenerate project files in Unity.
 
-Neovim integration for Unity C# development.
+---
 
-## 🔧 Plugin Commands (`nvim-unity`)
+## ✨ Features
 
-| Command     | Description                                      |
-|-------------|--------------------------------------------------|
-| `:Uadd`     | Force add the current `.cs` file to the project. |
-| `:Uaddall`  | Re-add all `.cs` files from `Assets/` to the `.csproj`. |
-| `:Ustatus`  | Print diagnostics and the current Unity project root. |
+- Automatically adds or removes `<Compile>` tags from `.csproj` files when `.cs` files are created, deleted, or renamed.
+- Detects Unity project root based on `Assembly-CSharp.csproj`.
+- Hooks into `nvim-tree` and LSP events.
+- Offers commands to manually manage project structure.
+- Optional C# class template insertion for new files.
+- Supports Unity snippets with LuaSnip integration.
 
-## 🔧 Recommended Configuration
+---
 
-We suggest using the following tools and configuration with `nvim-unity`:
+## 🔧 Plugin Commands
 
-### 🧪 Use NvChad
+| Command     | Description |
+|-------------|-------------|
+| `:Uadd`     | Add current `.cs` file to `.csproj`. |
+| `:Uaddall`  | Reset and re-add all `.cs` files under `Assets`. |
+| `:Ustatus`  | Show project status info. |
 
-NvChad is a feature-rich Neovim configuration that already comes with:
+---
 
-- [Lazy.nvim](https://github.com/folke/lazy.nvim)
-- [Mason.nvim](https://github.com/williamboman/mason.nvim)
-- [Telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
+## 🔁 Recommended Configuration
 
-### ⚙️ OmniSharp via Mason
+### Example (NvChad)
 
-Install OmniSharp with Mason:
-
-```bash
-:Mason
-# Then install "omnisharp"
-```
-
-Configure `lspconfig` for C# with:
-
-```lua
-local lspconfig = require("lspconfig")
-local nvlsp = require("plugins.configs.lspconfig")
-
-lspconfig.omnisharp.setup {
-  on_attach = nvlsp.on_attach,
-  capabilities = nvlsp.capabilities,
-  cmd = {
-    "dotnet",
-    vim.fn.stdpath "data" .. "\\mason\\packages\\omnisharp\\libexec\\OmniSharp.dll",
-  },
-  settings = {
-    FormattingOptions = {
-      EnableEditorConfigSupport = true,
-      OrganizeImports = true,
-      NewLine = "\n",
-      UseTabs = false,
-      TabSize = 4,
-      IndentationSize = 4,
-      SpacingAfterMethodDeclarationName = false,
-      SpaceWithinMethodDeclarationParenthesis = false,
-      SpaceBetweenEmptyMethodDeclarationParentheses = false,
-      SpaceAfterMethodCallName = false,
-      SpaceWithinMethodCallParentheses = false,
-      SpaceBetweenEmptyMethodCallParentheses = false,
-      SpaceAfterControlFlowStatementKeyword = true,
-      SpaceWithinExpressionParentheses = false,
-      SpaceWithinCastParentheses = false,
-      SpaceWithinOtherParentheses = false,
-      SpaceAfterCast = false,
-      SpacesIgnoreAroundVariableDeclaration = false,
-      SpaceBeforeOpenSquareBracket = false,
-      SpaceBetweenEmptySquareBrackets = false,
-      SpaceWithinSquareBrackets = false,
-      SpaceAfterColonInBaseTypeDeclaration = true,
-      SpaceAfterComma = true,
-      SpaceAfterDot = false,
-      SpaceAfterSemicolonsInForStatement = true,
-      SpaceBeforeColonInBaseTypeDeclaration = true,
-      SpaceBeforeComma = false,
-      SpaceBeforeDot = false,
-      SpaceBeforeSemicolonsInForStatement = false,
-      SpacingAroundBinaryOperator = "single",
-      IndentBraces = false,
-      IndentBlock = true,
-      IndentSwitchSection = true,
-      IndentSwitchCaseSection = true,
-      IndentSwitchCaseSectionWhenBlock = true,
-      LabelPositioning = "oneLess",
-      WrappingPreserveSingleLine = false,
-      WrappingKeepStatementsOnSingleLine = false,
-      NewLinesForBracesInTypes = true,
-      NewLinesForBracesInMethods = true,
-      NewLinesForBracesInProperties = true,
-      NewLinesForBracesInAccessors = true,
-      NewLinesForBracesInAnonymousMethods = true,
-      NewLinesForBracesInControlBlocks = true,
-      NewLinesForBracesInAnonymousTypes = true,
-      NewLinesForBracesInObjectCollectionArrayInitializers = true,
-      NewLinesForBracesInLambdaExpressionBody = true,
-      NewLineForElse = true,
-      NewLineForCatch = true,
-      NewLineForFinally = true,
-      NewLineForMembersInObjectInit = true,
-      NewLineForMembersInAnonymousTypes = true,
-      NewLineForClausesInQuery = true,
-    },
-    Sdk = {
-      IncludePrereleases = true,
-    },
-  },
-}
-```
-
-### 🧩 Treesitter
-
-Ensure `c_sharp` is added in your `treesitter` config:
-
-```lua
-require("nvim-treesitter.configs").setup {
-  ensure_installed = {
-    "lua",
-    "c_sharp", -- Required for C# syntax highlighting and folding
-  },
-  highlight = { enable = true },
-}
-```
-
-### 📦 Folding with `nvim-ufo`
-
-Install and configure `nvim-ufo` and `statuscol`:
+Install via Lazy:
 
 ```lua
 {
-  "kevinhwang91/nvim-ufo",
-  event = "BufRead",
-  dependencies = {
-    { "kevinhwang91/promise-async" },
-    {
-      "luukvbaal/statuscol.nvim",
-      config = function()
-        local builtin = require "statuscol.builtin"
-        require("statuscol").setup {
-          relculright = true,
-          segments = {
-            { text = { builtin.foldfunc }, click = "v:lua.ScFa" },
-            { text = { "%s" }, click = "v:lua.ScSa" },
-            { text = { builtin.lnumfunc, " " }, click = "v:lua.ScLa" },
-          },
-          provider_selector = function(bufnr, filetype, buftype)
-            return { "lsp", "indent" }
-          end,
-        }
-      end,
-    },
-  },
+  "hugocarmo/nvim-unity",
   config = function()
-    vim.o.fillchars = [[eob: ,fold: ,foldopen:,foldsep: ,foldclose:]]
-    vim.o.foldcolumn = "1"
-    vim.o.foldlevel = 99
-    vim.o.foldlevelstart = 99
-    vim.o.foldenable = true
-
-    require("ufo").setup()
+    require("unity.plugin")
   end,
+  ft = "cs",
 }
 ```
 
-## 🪄 Nice Tips
+Install `omnisharp` with [mason.nvim](https://github.com/williamboman/mason.nvim):
 
-| Feature / Shortcut           | Description                                            |
-|------------------------------|--------------------------------------------------------|
-| `<leader>ch`                 | Toggle **NvCheatsheet** with all keymaps.             |
-| `<leader>ff`, `fb`, etc      | **Telescope** for files, buffers, etc.                |
-| `gd`, `gD`, `<C-LeftClick>`  | Go to definition/declaration.                         |
-| `K`                          | Show signature help.                                  |
-| `<leader>ca`                 | Show code actions.                                    |
-| `:Mason`                     | Open Mason UI.                                        |
-| `:Lazy`                      | Manage plugins with Lazy.                             |
-| `:Uadd`, `:Uaddall`, `:Ustatus` | Use `nvim-unity` plugin commands.                  |
+LSP Configuration:
 
-## ⚠️ Important Note
+```lua
+local lspconfig = require("lspconfig")
+lspconfig.omnisharp.setup {
+  -- your config here
+}
+```
 
-**Do not** configure a formatter (e.g. `conform.nvim`) for `.cs` files — OmniSharp already provides formatting. Adding another formatter may break LSP functionality.
+Optional Folding Setup (with [nvim-ufo](https://github.com/kevinhwang91/nvim-ufo)):
+
+```lua
+{
+    "kevinhwang91/nvim-ufo",
+    event = "BufRead",
+    dependencies = {
+      { "kevinhwang91/promise-async" },
+      {
+        "luukvbaal/statuscol.nvim",
+        config = function()
+          local builtin = require "statuscol.builtin"
+          require("statuscol").setup {
+
+            -- foldfunc = "builtin",
+            -- setopt = true,
+            relculright = true,
+            segments = {
+              { text = { builtin.foldfunc }, click = "v:lua.ScFa" },
+              { text = { "%s" }, click = "v:lua.ScSa" },
+              { text = { builtin.lnumfunc, " " }, click = "v:lua.ScLa" },
+            },
+            provider_selector = function(bufnr, filetype, buftype)
+              return { "lsp", "indent" }
+            end,
+          }
+        end,
+      },
+    },
+    config = function()
+      -- Fold options
+      vim.o.fillchars = [[eob: ,fold: ,foldopen:,foldsep: ,foldclose:]]
+      vim.o.foldcolumn = "1" -- '0' is not bad
+      vim.o.foldlevel = 99 -- Using ufo provider need a large value, feel free to decrease the value
+      vim.o.foldlevelstart = 99
+      vim.o.foldenable = true
+
+      require("ufo").setup()
+    end,
+},
+```
+
+---
+
+## 🧹 Unity Snippets Integration
+
+This plugin supports C# Unity snippets using [LuaSnip](https://github.com/L3MON4D3/LuaSnip).
+
+### Installation
+
+Create this file:
+
+**Windows:**
+```
+C:/Users/YOUR_USERNAME/AppData/Local/nvim/lua/snippets/cs.lua
+```
+
+**Linux/macOS:**
+```
+~/.config/nvim/lua/snippets/cs.lua
+```
+
+### Example Snippets
+
+```lua
+return {
+  s("start", {
+    t({ "using UnityEngine;", "", "public class " }),
+    i(1, "MyClass"),
+    t({ " : MonoBehaviour", "{", "    " }),
+    i(0),
+    t({ "", "}" }),
+  }),
+  s("update", {
+    t("void Update() {"),
+    t({ "", "    " }),
+    i(0),
+    t({ "", "}" }),
+  }),
+  s("startmethod", {
+    t("void Start() {"),
+    t({ "", "    " }),
+    i(0),
+    t({ "", "}" }),
+  }),
+  s("awake", {
+    t("void Awake() {"),
+    t({ "", "    " }),
+    i(0),
+    t({ "", "}" }),
+  }),
+}
+```
+
+### Loading Snippets
+
+Make sure LuaSnip loads your snippets file by requiring it in your config:
+
+**Linux/macOS:**
+```lua
+require("luasnip.loaders.from_lua").load({ paths = "~/.config/nvim/lua/snippets" })
+```
+
+**Windows:**
+```lua
+require("luasnip.loaders.from_lua").lazy_load({
+  paths = vim.fn.stdpath("config") .. "/lua/snippets"
+})
+```
+
+This ensures that your `cs.lua` snippets are available when editing C# files.
+
+Once installed, use `<Tab>` or your LuaSnip trigger keys to expand snippets inside `.cs` files.
+
+---
+
+## 📦 Future Ideas
+- Scene explorer or interaction
+- Unity-specific commands
+- UI for adding Unity packages
+
+---
+
+## 🧑‍💻 Contributing
+PRs and suggestions welcome! This plugin is still under early development.
+
+---
+
+## 📜 License
+MIT
+
+
