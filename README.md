@@ -33,7 +33,7 @@ Install via Lazy:
 
 ```lua
 {
-  "hugocarmo/nvim-unity",
+  "apyra/nvim-unity",
   config = function()
     require("unity.plugin")
   end,
