@@ -21,11 +21,13 @@
 
 ## 🔧 Plugin Commands
 
-| Command     | Description |
-|-------------|-------------|
-| `:Uadd`     | Add current `.cs` file to `.csproj`. |
-| `:Uaddall`  | Reset and re-add all `.cs` files under `Assets`. |
-| `:Ustatus`  | Show project status info. |
+| Command        | Description |
+|----------------|-------------|
+| `:Uadd`        | Add current `.cs` file to `.csproj`. |
+| `:Uaddall`     | Reset and re-add all `.cs` files under `Assets`. |
+| `:Ustatus`     | Show project status info. 
+| `:Uregenerate` | Sends a message to unity to regenerate the project files. |
+| `:Uopen`       | Try to open Unity if there is a valid project folder  |
 
 ---
 
@@ -35,7 +37,10 @@ Install via Lazy:
 {
   "apyra/nvim-unity-handler",
   config = function()
-    require("unity.plugin")
+    require("unity.plugin").setup({
+      -- (Opcional) sobrescrever o path aqui, if Windos maybe it needed to use :Uopen
+      unity_path = "path/to/unity/Unity.exe"
+        })
   end,
   ft = "cs",
 }
