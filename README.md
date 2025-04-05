@@ -1,4 +1,4 @@
-# NvimUnityHandle
+# nvim-unity-handle
 
 **Nvim Unity Handle** is a lightweight Neovim plugin designed to enhance Unity development inside Neovim. It automatically manages `.csproj` files based on file events, helping you avoid the need to manually regenerate project files in Unity.
 
