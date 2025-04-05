@@ -38,7 +38,6 @@ Install via Lazy:
   "apyra/nvim-unity-handler",
   config = function()
     require("unity.plugin").setup({
-      -- (Opcional) sobrescrever o path aqui, if Windos maybe it needed to use :Uopen
       unity_path = "path/to/unity/Unity.exe"
         })
   end,
