@@ -243,14 +243,14 @@ end, { nargs = 0 })
 
 vim.api.nvim_create_user_command("Ustatus", function()
 	if not unityProject:validateProject() then
-		vim.notify("[NvimUnity] Nenhum projeto Unity válido detectado.", vim.log.levels.WARN)
+		vim.notify("[NvimUnity] This is not a valid Unity project.", vim.log.levels.WARN)
 		return
 	end
 
 	local msg = {
-		"🧠 [NvimUnity] Status do Projeto:",
+		"🧠 [NvimUnity] Project Status:",
 		"📁 Root: " .. unityProject:getRoot(),
-		"🔌 LSP Ativo: " .. (lspAttached and "Sim" or "Não"),
+		"🔌 LSP Active: " .. (lspAttached and "Yes" or "No"),
 	}
 
 	vim.notify(table.concat(msg, "\n"), vim.log.levels.INFO)
