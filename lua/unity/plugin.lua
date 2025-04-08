@@ -11,6 +11,8 @@ end
 -- Função setup (opcionalmente recebe overrides)
 function M.setup(opts)
   opts = opts or {}
+  M.server = vim.g.unity_server or "http://localhost:42069"
+  print("[nvim-unity-handle] Server set to: " .. M.server)
 
   -- Permite sobrescrever valores do config se desejado
   if opts.unity_path then
@@ -261,7 +263,7 @@ vim.api.nvim_create_user_command("Uregenerate", function()
 		"curl",
 		"-X",
 		"POST",
-		"http://localhost:5005/regenerate",
+    M.server .. "/regenerate"
 	}, {
 		on_exit = function(_, code)
 			if code == 0 then
