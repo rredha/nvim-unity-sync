@@ -1,29 +1,27 @@
-local M = {}
+local Plugin = {}
+local config = require("unity.config")
+
+-- Função setup (opcionalmente recebe overrides)
+function Plugin.setup(opts)
+  opts = opts or {}
+  if opts.unity_path then
+    config.unity_path = opts.unity_path
+  end
+  if opts.unity_cs_template then
+    config.unity_cs_template = opts.unity_cs_template
+  end
+end
 
 local xmlHandler = require("unity.handler")
-local config = require("unity.config")
 local ok, utils = pcall(require, "unity.utils")
 if not ok then
 	vim.notify("[NvimUnity] Failed to load unity.utils", vim.log.levels.ERROR)
 	return
 end
 
--- Função setup (opcionalmente recebe overrides)
-function M.setup(opts)
-  opts = opts or {}
-  M.server = vim.g.unity_server or "http://localhost:42069"
-  print("[nvim-unity-handle] Server set to: " .. M.server)
-
-  -- Permite sobrescrever valores do config se desejado
-  if opts.unity_path then
-    config.unity_path = opts.unity_path
-  end
-
-end
-
 local unityProject = xmlHandler:new()
-local api = require("nvim-tree.api")
-local Event = api.events.Event
+local nvimtreeApi = require("nvim-tree.api")
+local Event = nvimtreeApi.events.Event
 local lspAttached = false
 
 local function trySaveProject()
@@ -33,36 +31,50 @@ local function trySaveProject()
 	end
 end
 
-api.events.subscribe(Event.FileCreated, function(data)
+--------------- Nvim-tree Events --------------------
+
+nvimtreeApi.events.subscribe(Event.FileCreated, function(data)
 	if lspAttached then
 		return
 	end
-	if not unityProject:validateProject() or not utils.isCSFile(data.fname) then
+
+  if not utils.isCSFile(data.fname) then
+    return
+  end
+
+	if not unityProject:validateProject() then
 		return
 	end
 
-	local folderName = utils.cutPath(utils.uriToPath(data.fname), "Assets") or ""
+	local folderName = utils.cutPath(utils.normalizePath(data.fname), "Assets") or ""
 	if unityProject:addCompileTag(folderName) then
-		utils.insertCSTemplate(data.fname)
+    if config.unity_cs_template then
+		  utils.insertCSTemplate(data.fname)
+    end
 		trySaveProject()
 	end
 end)
 
-api.events.subscribe(Event.FileRemoved, function(data)
+nvimtreeApi.events.subscribe(Event.FileRemoved, function(data)
 	if lspAttached then
 		return
 	end
-	if not unityProject:validateProject() or not utils.isCSFile(data.fname) then
+
+  if not utils.isCSFile(data.fname) then
+    return
+  end
+  
+	if not unityProject:validateProject() then
 		return
 	end
 
-	local folderName = utils.cutPath(utils.uriToPath(data.fname), "Assets") or ""
+	local folderName = utils.cutPath(utils.normalizePath(data.fname), "Assets") or ""
 	if unityProject:removeCompileTag(folderName) then
 		trySaveProject()
 	end
 end)
 
-api.events.subscribe(Event.WillRenameNode, function(data)
+nvimtreeApi.events.subscribe(Event.WillRenameNode, function(data)
 	if not unityProject:validateProject() then
 		return
 	end
@@ -76,8 +88,8 @@ api.events.subscribe(Event.WillRenameNode, function(data)
 		local nameChanges = {}
 		for _, file in ipairs(updatedFileNames) do
 			table.insert(nameChanges, {
-				old = utils.cutPath(utils.uriToPath(file.old), "Assets") or "",
-				new = utils.cutPath(utils.uriToPath(file.new), "Assets") or "",
+				old = utils.cutPath(utils.normalizePath(file.old), "Assets") or "",
+				new = utils.cutPath(utils.normalizePath(file.new), "Assets") or "",
 			})
 		end
 
@@ -85,13 +97,16 @@ api.events.subscribe(Event.WillRenameNode, function(data)
 		trySaveProject()
 	else
 		if lspAttached then
-			return
-		end
+		  return
+  end
+    if not utils.isCSFile(data.old_name) and utils.isCSFile(data.new_name) then
+      return
+    end
 
 		local nameChanges = {
 			{
-				old = utils.cutPath(utils.uriToPath(data.old_name), "Assets") or "",
-				new = utils.cutPath(utils.uriToPath(data.new_name), "Assets") or "",
+				old = utils.cutPath(utils.normalizePath(data.old_name), "Assets") or "",
+				new = utils.cutPath(utils.normalizePath(data.new_name), "Assets") or "",
 			},
 		}
 
@@ -100,18 +115,21 @@ api.events.subscribe(Event.WillRenameNode, function(data)
 	end
 end)
 
-api.events.subscribe(Event.FolderRemoved, function(data)
-	if not unityProject:validateProject() or not data.folder_name then
+nvimtreeApi.events.subscribe(Event.FolderRemoved, function(data)
+	if not unityProject:validateProject() then
 		return
 	end
 
-	local folderName = utils.cutPath(utils.uriToPath(data.folder_name), "Assets") or ""
+	local folderName = utils.cutPath(utils.normalizePath(data.folder_name), "Assets") or ""
 	if unityProject:removeCompileTagsByFolder(folderName) then
 		trySaveProject()
 	end
 end)
 
+--------------- Auto Commands --------------------
+
 vim.api.nvim_create_autocmd("LspNotify", {
+  pattern =".cs",
 	callback = function(args)
 		if args.data.method ~= "workspace/didChangeWatchedFiles" then
 			return
@@ -121,13 +139,15 @@ vim.api.nvim_create_autocmd("LspNotify", {
 		local needSave = false
 
 		if #changes == 1 then
-			if not utils.isCSFile(changes[1].uri) or not unityProject:validateProject() then
+			if not unityProject:validateProject() then
 				return
 			end
 
-			local fileName = utils.cutPath(utils.uriToPath(changes[1].uri), "Assets") or ""
+			local fileName = utils.cutPath(utils.normalizePath(changes[1].uri), "Assets") or ""
 			if changes[1].type == 1 then
-				utils.insertCSTemplate(utils.uriToPath(changes[1].uri))
+        if config.unity_cs_template then
+				  utils.insertCSTemplate(utils.normalizePath(changes[1].uri))
+        end
 				if unityProject:addCompileTag(fileName) then
 					needSave = true
 				end
@@ -137,9 +157,6 @@ vim.api.nvim_create_autocmd("LspNotify", {
 				end
 			end
 		elseif #changes == 2 then
-			if not utils.isCSFile(changes[1].uri) or not utils.isCSFile(changes[2].uri) then
-				return
-			end
 			if not unityProject:validateProject() then
 				return
 			end
@@ -147,8 +164,8 @@ vim.api.nvim_create_autocmd("LspNotify", {
 			if changes[1].type == 3 and changes[2].type == 1 then
 				local nameChanges = {
 					{
-						old = utils.cutPath(utils.uriToPath(changes[1].uri), "Assets") or "",
-						new = utils.cutPath(utils.uriToPath(changes[2].uri), "Assets") or "",
+						old = utils.cutPath(utils.normalizePath(changes[1].uri), "Assets") or "",
+						new = utils.cutPath(utils.normalizePath(changes[2].uri), "Assets") or "",
 					},
 				}
 				if unityProject:updateCompileTags(nameChanges) then
@@ -165,83 +182,44 @@ vim.api.nvim_create_autocmd("LspNotify", {
 
 vim.api.nvim_create_autocmd("LspAttach", {
 	once = true,
+  pattern = ".cs",
 	callback = function(args)
 		local client = vim.lsp.get_client_by_id(args.data.client_id)
-		if unityProject and client and client.name == unityProject:getLspName() then
-			if unityProject:validateProject() then
+			if client and unityProject:validateProject() then
 				lspAttached = true
 				vim.notify("[NvimUnity] LSP " .. client.name .. " is ready to go, happy coding!", vim.log.levels.INFO)
 			end
-		end
 	end,
 })
 
 vim.api.nvim_create_autocmd("LspDetach", {
+  pattern = ".cs",
 	callback = function(args)
-		local client = vim.lsp.get_client_by_id(args.data.client_id)
-		if client and client.name == unityProject:getLspName() then
 			if unityProject:validateProject() then
 				lspAttached = false
 			end
-		end
 	end,
 })
 
 vim.api.nvim_create_autocmd("VimEnter", {
 	callback = function()
 		unityProject:updateRoot()
-		if unityProject:validateProject() then
-			vim.notify("[NvimUnity] Unity project detected at " .. unityProject:getRoot(), vim.log.levels.INFO)
-		end
 	end,
+})
+
+vim.api.nvim_create_autocmd("VimLeave", {
+    callback = function()
+        os.execute('pkill -f unity2025')
+    end
 })
 
 vim.api.nvim_create_autocmd("DirChanged", {
 	callback = function()
-		unityProject:updateRoot()
+		  unityProject:updateRoot()
 	end,
 })
 
-vim.api.nvim_create_user_command("Uadd", function()
-	local bufname = vim.api.nvim_buf_get_name(0)
-
-	if not unityProject:validateProject() then
-		vim.api.nvim_err_writeln("[NvimUnity] This is not a Unity project, try to regenerate the csproj files in Unity")
-		return
-	end
-
-	if not utils.isCSFile(bufname) then
-		vim.api.nvim_err_writeln("[NvimUnity] Open a script '.cs' file ")
-		return
-	end
-
-	if vim.fn.filereadable(bufname) == 1 then
-		local fileName = utils.cutPath(bufname, "Assets")
-		fileName = utils.uriToPath(fileName)
-		local added, msg = unityProject:addCompileTag(fileName)
-		if added then
-			trySaveProject()
-		else
-			vim.notify(msg, vim.log.levels.WARN)
-		end
-	end
-end, { nargs = 0 })
-
-vim.api.nvim_create_user_command("Uaddall", function()
-	if not unityProject:validateProject() then
-		vim.api.nvim_err_writeln(
-			"[NvimUnity] This is not an Unity project, try to regenerate the csproj files in Unity"
-		)
-		return
-	end
-
-	local reseted, msg = unityProject:resetCompileTags(9)
-	if reseted then
-		trySaveProject()
-	else
-		vim.notify("[NvimUnity] " .. msg, vim.log.levels.WARN)
-	end
-end, { nargs = 0 })
+--------------- User Commands --------------------
 
 vim.api.nvim_create_user_command("Ustatus", function()
 	if not unityProject:validateProject() then
@@ -256,31 +234,40 @@ vim.api.nvim_create_user_command("Ustatus", function()
 	}
 
 	vim.notify(table.concat(msg, "\n"), vim.log.levels.INFO)
-end, { nargs = 0 })
+end, { 
+  nargs = 0,
+  desc = "Show the status of the current project"
+})
 
-vim.api.nvim_create_user_command("Uregenerate", function()
-	vim.fn.jobstart({
-		"curl",
-		"-X",
-		"POST",
-    M.server .. "/regenerate"
-	}, {
-		on_exit = function(_, code)
-			if code == 0 then
-				print("[Unity] Project files regenerated!")
-			else
-				print("[Unity] Failed to contact Unity server.")
-			end
-		end,
-	})
-end, {})
+vim.api.nvim_create_user_command("Usync", function()
+
+  local response , msg = unityProject:validateProject()
+  if not response then
+		vim.api.nvim_err_writeln("[NvimUnity] " .. msg)
+    return
+	end
+
+	local reseted, msg = unityProject:resetCompileTags()
+	if reseted then
+		trySaveProject()
+    vim.cmd('echo ""')
+	else
+		vim.notify("[NvimUnity] " .. msg, vim.log.levels.WARN)
+	end
+end, {
+  desc = "Sync project files",
+})
 
 vim.api.nvim_create_user_command("Uopen", function()
 	if not unityProject:validateProject() then
 		vim.notify("[NvimUnity] This is not a Unity project ", vim.log.levels.ERROR)
 		return
 	end
-	unityProject:openProject()
+	unityProject:openUnity()
+  vim.cmd('echo ""')
 end, {
 	desc = "Open Unity Editor from Neovim",
 })
+
+return Plugin
+
