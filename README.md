@@ -1,6 +1,6 @@
 # NvimUnitySync
 
-**Nvim Unity Handle** is a lightweight Neovim plugin designed to enhance Unity development inside Neovim. It automatically manages `.csproj` files based on file events, helping you avoid the need to manually regenerate project files in Unity.
+**Nvim Unity Sync** is a lightweight Neovim plugin designed to enhance Unity development inside Neovim. It automatically manages `.csproj` files based on file events, helping you avoid the need to manually regenerate project files in Unity.
 
 
 ## ✨ Features
@@ -9,7 +9,7 @@
 - Hooks into `nvim-tree` and LSP events.
 - Offers commands to manually manage project structure.
 
-* Note that the Assembly-CSharp.csproj will be overwriten by Unity, but in this way you can work in your Unity project with lsp features like code completions without the need of unity to be open.
+> Note that the Assembly-CSharp.csproj will be overwriten by Unity, but in this way you can work in your Unity project with lsp features like code completions without the need of unity to be open.
 
 
 ## 🔧 Plugin Commands
