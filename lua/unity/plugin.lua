@@ -20,8 +20,6 @@ if not ok then
 end
 
 local unityProject = xmlHandler:new()
-local nvimtreeApi = require("nvim-tree.api")
-local Event = nvimtreeApi.events.Event
 local lspAttached = false
 
 local function trySaveProject()
@@ -30,101 +28,6 @@ local function trySaveProject()
 		vim.notify("[NvimUnity] " .. err, vim.log.levels.ERROR)
 	end
 end
-
---------------- Nvim-tree Events --------------------
-
-nvimtreeApi.events.subscribe(Event.FileCreated, function(data)
-	if lspAttached then
-		return
-	end
-
-  if not utils.isCSFile(data.fname) then
-    return
-  end
-
-	if not unityProject:validateProject() then
-		return
-	end
-
-	local folderName = utils.cutPath(utils.normalizePath(data.fname), "Assets") or ""
-	if unityProject:addCompileTag(folderName) then
-    if config.unity_cs_template then
-		  utils.insertCSTemplate(data.fname)
-    end
-		trySaveProject()
-	end
-end)
-
-nvimtreeApi.events.subscribe(Event.FileRemoved, function(data)
-	if lspAttached then
-		return
-	end
-
-  if not utils.isCSFile(data.fname) then
-    return
-  end
-  
-	if not unityProject:validateProject() then
-		return
-	end
-
-	local folderName = utils.cutPath(utils.normalizePath(data.fname), "Assets") or ""
-	if unityProject:removeCompileTag(folderName) then
-		trySaveProject()
-	end
-end)
-
-nvimtreeApi.events.subscribe(Event.WillRenameNode, function(data)
-	if not unityProject:validateProject() then
-		return
-	end
-
-	if utils.isDirectory(data.old_name) then
-		local updatedFileNames = utils.getUpdatedCSFilesNames(data.old_name, data.new_name)
-		if #updatedFileNames == 0 then
-			return
-		end
-
-		local nameChanges = {}
-		for _, file in ipairs(updatedFileNames) do
-			table.insert(nameChanges, {
-				old = utils.cutPath(utils.normalizePath(file.old), "Assets") or "",
-				new = utils.cutPath(utils.normalizePath(file.new), "Assets") or "",
-			})
-		end
-
-		unityProject:updateCompileTags(nameChanges)
-		trySaveProject()
-	else
-		if lspAttached then
-		  return
-  end
-    if not utils.isCSFile(data.old_name) and utils.isCSFile(data.new_name) then
-      return
-    end
-
-		local nameChanges = {
-			{
-				old = utils.cutPath(utils.normalizePath(data.old_name), "Assets") or "",
-				new = utils.cutPath(utils.normalizePath(data.new_name), "Assets") or "",
-			},
-		}
-
-		unityProject:updateCompileTags(nameChanges)
-		trySaveProject()
-	end
-end)
-
-nvimtreeApi.events.subscribe(Event.FolderRemoved, function(data)
-	if not unityProject:validateProject() then
-		return
-	end
-
-	local folderName = utils.cutPath(utils.normalizePath(data.folder_name), "Assets") or ""
-	if unityProject:removeCompileTagsByFolder(folderName) then
-		trySaveProject()
-	end
-end)
 
 --------------- Auto Commands --------------------
 
@@ -234,7 +137,7 @@ vim.api.nvim_create_user_command("Ustatus", function()
 	}
 
 	vim.notify(table.concat(msg, "\n"), vim.log.levels.INFO)
-end, { 
+end, {
   nargs = 0,
   desc = "Show the status of the current project"
 })
@@ -270,4 +173,3 @@ end, {
 })
 
 return Plugin
-
